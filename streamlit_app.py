@@ -130,15 +130,15 @@ if __name__ == "__main__":
     st.title("\n🌍 CivicBot: Raise Your Voice for Local Issues\n")
 
     if "sender_done" not in st.session_state:
-    st.session_state.sender_done = False
+        st.session_state.sender_done = False
     if "location_done" not in st.session_state:
-    st.session_state.location_done = False
+        st.session_state.location_done = False
     if "issue_type_done" not in st.session_state:
-    st.session_state.issue_type_done = False
+        st.session_state.issue_type_done = False
     if "issue_description_done" not in st.session_state:
-    st.session_state.issue_description_done = False
+        st.session_state.issue_description_done = False
     if "followup_done" not in st.session_state:
-    st.session_state.followup_done = False
+        st.session_state.followup_done = False
 
     if not st.session_state.sender_done:
         sender = st.text_input("Enter your name or leave blank for anonymity: ",key="sender_input").strip()
