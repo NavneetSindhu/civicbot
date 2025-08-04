@@ -156,7 +156,7 @@ with st.status("Searching for Contact"):
 st.button("Rerun")
     st.code(contact)
 
-    st.subheader("✍️ Generated Complaint Letter")
+st.subheader("✍️ Generated Complaint Letter")
     complaint = generate_complaint(
         st.session_state.location,
         st.session_state.issue_type,
@@ -165,7 +165,7 @@ st.button("Rerun")
         st.session_state.followup,
         contact
     )
-    st.code(complaint)
+st.code(complaint)
 
     if st.button("Show Suggested Further Steps"):
         steps = further_steps(
