@@ -1,56 +1,155 @@
+# civicbot_gemini.py
+import os
+import google.generativeai as genai
+import threading
+import time
+import sys
 import streamlit as st
-from openai import OpenAI
 
-# Show title and description.
-st.title("💬 Chatbot")
-st.write(
-    "This is a simple chatbot that uses OpenAI's GPT-3.5 model to generate responses. "
-    "To use this app, you need to provide an OpenAI API key, which you can get [here](https://platform.openai.com/account/api-keys). "
-    "You can also learn how to build this app step by step by [following our tutorial](https://docs.streamlit.io/develop/tutorials/llms/build-conversational-apps)."
-)
+def loader(message="⏳ Working"):
+    chars = ["", ".", "..", "..."]
+    i = 0
+    while not stop_loader:
+        print(f"\r{message}{chars[i % 4]}", end="")
+        i += 1
+        time.sleep(0.4)
+    print("\r", end="")  # Clear loader after done
 
-# Ask user for their OpenAI API key via `st.text_input`.
-# Alternatively, you can store the API key in `./.streamlit/secrets.toml` and access it
-# via `st.secrets`, see https://docs.streamlit.io/develop/concepts/connections/secrets-management
-openai_api_key = st.text_input("OpenAI API Key", type="password")
-if not openai_api_key:
-    st.info("Please add your OpenAI API key to continue.", icon="🗝️")
-else:
+# Wrap the Gemini call
+def generate_with_loader(fn, *args, message="⏳ Working", **kwargs):
+    global stop_loader
+    stop_loader = False
+    t = threading.Thread(target=loader, args=(message,))
+    t.start()
 
-    # Create an OpenAI client.
-    client = OpenAI(api_key=openai_api_key)
+    result = fn(*args, **kwargs)
 
-    # Create a session state variable to store the chat messages. This ensures that the
-    # messages persist across reruns.
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
+    stop_loader = True
+    t.join()
+    return result
 
-    # Display the existing chat messages via `st.chat_message`.
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+# Load API key
+# GEMINI_API_KEY = os.getenv("AIzaSyDsEjUH14QGHeKmxmhX2ABAa7NppS44PK4") or st.input_text("🔑 Enter your Gemini API Key: ")
+genai.configure(api_key="AIzaSyDsEjUH14QGHeKmxmhX2ABAa7NppS44PK4")
 
-    # Create a chat input field to allow the user to enter a message. This will display
-    # automatically at the bottom of the page.
-    if prompt := st.chat_input("What is up?"):
+def follow_up(location, issue_type, issue_description):
+    model = genai.GenerativeModel("gemini-2.5-pro")
+    prompt = f"""
+    You're a civic bot designed to educate and draft formal complaints to authorities for immediate solution of problems of users.
+    Based on the user's input of {location},{issue_type},{issue_description}, ask 3 short, relevant follow-up questions
+    that would help you write the most accurate and personalized civic complaint letter and print them only first.
+    """
+    response = generate_with_loader(lambda:model.generate_content(prompt))
+    return response.text.strip()
 
-        # Store and display the current prompt.
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
 
-        # Generate a response using the OpenAI API.
-        stream = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": m["role"], "content": m["content"]}
-                for m in st.session_state.messages
-            ],
-            stream=True,
-        )
+def further_steps(location, issue_type, issue_description):
+    model = genai.GenerativeModel("gemini-2.5-pro")
+    prompt = f"""
+    You're a civic bot designed to educate and draft formal complaints to authorities for immediate solution of problems of users.
 
-        # Stream the response to the chat using `st.write_stream`, then store it in 
-        # session state.
-        with st.chat_message("assistant"):
-            response = st.write_stream(stream)
-        st.session_state.messages.append({"role": "assistant", "content": response})
+    Task:
+    - Further steps user can take on own based on following-
+    - Location: {location.title()}
+    - Type: {issue_type}
+    - Description: {issue_description}
+    
+    """
+    response = generate_with_loader(lambda:model.generate_content(prompt))
+    return response.text.strip()
+
+
+# Step 1: Generate complaint letter
+def generate_complaint(location, issue_type, issue_description,sender,followup,contact=""):
+    model = genai.GenerativeModel("gemini-2.5-pro")
+    prompt = f"""
+    You're a civic bot designed to educate and draft formal complaints to authorities for immediate solution of problems of users.
+    
+
+    Task:
+    - Write a formal complaint for the following civic issue:
+    - Location: {location.title()}
+    - Type: {issue_type}
+    - Description: {issue_description}
+    - Contact: {contact}
+    - Sender: {sender}
+    - Context: {followup}
+    Output:
+    - Well-formatted letter
+    - Polite and assertive tone
+    - Professional language
+    If sender name is blank its for anonymouse reasons mention resident of location.
+    """
+    response = generate_with_loader(lambda:model.generate_content(prompt))
+    return response.text.strip()
+
+
+# Step 2: Ask Gemini to find email contact based on search knowledge
+def find_contact_email(location, issue_type):
+    model = genai.GenerativeModel("gemini-2.5-pro")
+    search_prompt = f"""
+Find the official contact email for handling {issue_type} issues in {location}, India.
+
+- Categorize the issue: If {issue_type} is "sanitation" or "drainage", search for the Municipal Corporation or City Corporation. For "water supply", search for the Public Health Engineering Department.
+- Prefer `.gov.in` email addresses. If a `.gov.in` address is not found, return the most official-looking alternative (e.g., a formal department email).
+- Return only the most likely email address and the name of the department or specific official it belongs to, in the format: `Email: [email address], Contact Name: [name/department]`.
+- If a single, accurate email is not found, return a list of the most relevant addresses with their corresponding contact names/departments, each on a new line, in the same format.
+- Do not include any other text or explanation.
+    """
+    response = generate_with_loader(lambda:model.generate_content(search_prompt))
+    
+    return response.text.strip()
+
+# CLI Interaction
+
+
+if __name__ == "__main__":
+    options_list = [
+    "Choose",
+    "Sanitation",
+    "Drainage",
+    "Water Supply",
+    "Electricity",
+    "Road Damage",
+    "Garbage Collection",
+    "Street Lighting",
+    "Noise Pollution",
+    "Air Pollution",
+    "Illegal Parking",
+    "Animal Nuisance",
+    "Sewage Overflow",
+    "Construction Debris",
+    "Tree Cutting",
+    "Public Toilet Maintenance",
+    "Potholes",
+    "Blocked Footpaths",
+    "Open Manholes",
+    "Other"
+]
+
+    st.title("\n🌍 CivicBot: Raise Your Voice for Local Issues\n")
+    sender = st.text_input("Enter your name or leave blank for anonymity: ").strip()
+    location = st.text_input("📍 Enter your area/locality: ").strip()
+    issue_type = st.selectbox("🔧 Enter the issue type (e.g., sanitation, drainage): ",options_list,0).strip()
+    if issue_type == "Other":
+        custom_issue = st.text_input("Please describe the issue:")
+    issue_description = st.text_input("📢 Describe the issue briefly: ").strip()
+
+    followup = st.text_input(follow_up(location, issue_type, issue_description))
+    print("\n🔎 Trying to find relevant email/contact...")
+    contact = find_contact_email(location, issue_type)
+    # print(contact)
+    print("\n📬 Suggested Contact:\n")
+    print(contact)
+    st.text("Would you like to know some steps you can take on your own - Yes/No ")
+    permission_yes = st.button(" Yes ")
+    permission_no = st.button(" No ")
+    if permission_yes:
+        further_steps(location,issue_type,issue_description)
+    st.text("\n✍️ Generating complaint letter...")
+    complaint = generate_complaint(location, issue_type, issue_description,sender,followup,contact)
+    st.text("\n📝 Complaint Letter:\n")
+    st.text(complaint)
+    # print("\n📝 Want me to fill your personal details:\n")
+
+    
