@@ -130,11 +130,12 @@ if st.session_state.issue_type_done and not st.session_state.issue_description_d
 
 # Step 5: Follow-Up Questions
 if st.session_state.issue_description_done and not st.session_state.followup_done:
-    questions = follow_up(
-        st.session_state.location,
-        st.session_state.issue_type,
-        st.session_state.issue_description
-    )
+    with st.spinner("Generating follow-up questions..."):
+        questions = follow_up(
+            st.session_state.location,
+            st.session_state.issue_type,
+            st.session_state.issue_description
+        )
     followup = st.text_area("Please answer the following:", value=questions, key="followup_input")
     if followup:
         st.session_state.followup = followup
@@ -143,35 +144,29 @@ if st.session_state.issue_description_done and not st.session_state.followup_don
 
 # After all inputs
 if st.session_state.followup_done:
-    contact = find_contact_email(st.session_state.location, st.session_state.issue_type)
+    with st.spinner("Searching for relevant contact..."):
+        contact = find_contact_email(st.session_state.location, st.session_state.issue_type)
     st.subheader("📩 Contact Details")
-with st.status("Searching for Contact"):
-    st.write("Searching on google")
-    time.sleep(2)
-    st.write("Found URL.")
-    time.sleep(1)
-    st.write("Retrieving Address")
-    time.sleep(1)     
+    st.code(contact)
 
-st.button("Rerun")
-st.code(contact)
-
-st.subheader("✍️ Generated Complaint Letter")
-    complaint = generate_complaint(
-        st.session_state.location,
-        st.session_state.issue_type,
-        st.session_state.issue_description,
-        st.session_state.sender,
-        st.session_state.followup,
-        contact
-    )
-st.code(complaint)
-
-    if st.button("Show Suggested Further Steps"):
-        steps = further_steps(
+    st.subheader("✍️ Generated Complaint Letter")
+    with st.spinner("Generating complaint letter..."):
+        complaint = generate_complaint(
             st.session_state.location,
             st.session_state.issue_type,
-            st.session_state.issue_description
+            st.session_state.issue_description,
+            st.session_state.sender,
+            st.session_state.followup,
+            contact
         )
+    st.text_area("Complaint Letter", complaint, height=300)
+
+    if st.button("Show Suggested Further Steps"):
+        with st.spinner("Generating further steps..."):
+            steps = further_steps(
+                st.session_state.location,
+                st.session_state.issue_type,
+                st.session_state.issue_description
+            )
         st.markdown("### 🧑‍📋 Further Steps You Can Take")
         st.markdown(steps)
