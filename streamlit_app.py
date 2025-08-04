@@ -154,8 +154,8 @@ if __name__ == "__main__":
 
     if not st.session_state.issue_type_done:
         issue_type = st.selectbox("🔧 Enter the issue type (e.g., sanitation, drainage): ",options_list,0).strip()
-        if issue_type == "Other":
-            custom_issue = st.text_input("Please describe the issue:")
+    if issue_type == "Other":
+        custom_issue = st.text_input("Please describe the issue:")
     if issue_type:
         st.session_state.issue_type_done = True
         st.rerun()
