@@ -154,7 +154,7 @@ with st.status("Searching for Contact"):
     time.sleep(1)     
 
 st.button("Rerun")
-    st.code(contact)
+st.code(contact)
 
 st.subheader("✍️ Generated Complaint Letter")
     complaint = generate_complaint(
