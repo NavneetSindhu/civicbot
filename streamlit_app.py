@@ -87,7 +87,7 @@ options_list = [
     "Open Manholes", "Other"
 ]
 
-# Session state tracker
+# Initialize session state keys if not present
 for key in ["sender_done", "location_done", "issue_type_done", "issue_description_done", "followup_done"]:
     if key not in st.session_state:
         st.session_state[key] = False
@@ -99,50 +99,64 @@ if not st.session_state.sender_done:
         st.session_state.sender = sender
         st.session_state.sender_done = True
         st.rerun()
+else:
+    st.text(f"Name: {st.session_state.sender}")
 
 # Step 2: Location
-if st.session_state.sender_done and not st.session_state.location_done:
-    location = st.text_input("📍 Enter your area/locality:", key="location_input").strip()
-    if location:
-        st.session_state.location = location
-        st.session_state.location_done = True
-        st.rerun()
+if st.session_state.sender_done:
+    if not st.session_state.location_done:
+        location = st.text_input("📍 Enter your area/locality:", key="location_input").strip()
+        if location:
+            st.session_state.location = location
+            st.session_state.location_done = True
+            st.rerun()
+    else:
+        st.text(f"Location: {st.session_state.location}")
 
 # Step 3: Issue Type
-if st.session_state.location_done and not st.session_state.issue_type_done:
-    issue_type = st.selectbox("💧 Select the issue type:", options_list, index=0, key="issue_type_input")
-    if issue_type != "Choose":
-        if issue_type == "Other":
-            custom_issue = st.text_input("Please describe the issue:", key="custom_issue_input")
-            if custom_issue:
-                issue_type = custom_issue
-        st.session_state.issue_type = issue_type
-        st.session_state.issue_type_done = True
-        st.rerun()
+if st.session_state.location_done:
+    if not st.session_state.issue_type_done:
+        issue_type = st.selectbox("💧 Select the issue type:", options_list, index=0, key="issue_type_input")
+        if issue_type != "Choose":
+            if issue_type == "Other":
+                custom_issue = st.text_input("Please describe the issue:", key="custom_issue_input")
+                if custom_issue:
+                    issue_type = custom_issue
+            st.session_state.issue_type = issue_type
+            st.session_state.issue_type_done = True
+            st.rerun()
+    else:
+        st.text(f"Issue Type: {st.session_state.issue_type}")
 
 # Step 4: Description
-if st.session_state.issue_type_done and not st.session_state.issue_description_done:
-    issue_description = st.text_input("📣 Briefly describe the issue:", key="issue_desc_input").strip()
-    if issue_description:
-        st.session_state.issue_description = issue_description
-        st.session_state.issue_description_done = True
-        st.rerun()
+if st.session_state.issue_type_done:
+    if not st.session_state.issue_description_done:
+        issue_description = st.text_input("📣 Briefly describe the issue:", key="issue_desc_input").strip()
+        if issue_description:
+            st.session_state.issue_description = issue_description
+            st.session_state.issue_description_done = True
+            st.rerun()
+    else:
+        st.text(f"Issue Description: {st.session_state.issue_description}")
 
 # Step 5: Follow-Up Questions
-if st.session_state.issue_description_done and not st.session_state.followup_done:
-    with st.spinner("Generating follow-up questions..."):
-        questions = follow_up(
-            st.session_state.location,
-            st.session_state.issue_type,
-            st.session_state.issue_description
-        )
-    followup = st.text_area("Please answer the following:", value=questions, key="followup_input")
-    if followup:
-        st.session_state.followup = followup
-        st.session_state.followup_done = True
-        st.rerun()
+if st.session_state.issue_description_done:
+    if not st.session_state.followup_done:
+        with st.spinner("Generating follow-up questions..."):
+            questions = follow_up(
+                st.session_state.location,
+                st.session_state.issue_type,
+                st.session_state.issue_description
+            )
+        followup = st.text_area("Please answer the following:", value=questions, key="followup_input")
+        if followup:
+            st.session_state.followup = followup
+            st.session_state.followup_done = True
+            st.rerun()
+    else:
+        st.text(f"Follow-Up Answers:\n{st.session_state.followup}")
 
-# After all inputs
+# After all inputs collected, show contact and complaint letter
 if st.session_state.followup_done:
     with st.spinner("Searching for relevant contact..."):
         contact = find_contact_email(st.session_state.location, st.session_state.issue_type)
