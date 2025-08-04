@@ -156,7 +156,7 @@ if st.session_state.followup_done:
         st.session_state.followup,
         contact
     )
-    st.text_area("Complaint Letter", complaint, height=300)
+    st.code(complaint)
 
     if st.button("Show Suggested Further Steps"):
         steps = further_steps(
