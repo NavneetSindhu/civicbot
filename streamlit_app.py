@@ -144,7 +144,16 @@ if st.session_state.issue_description_done and not st.session_state.followup_don
 # After all inputs
 if st.session_state.followup_done:
     contact = find_contact_email(st.session_state.location, st.session_state.issue_type)
-    st.subheader("📩 Suggested Contact")
+    st.subheader("📩 Contact Details")
+      with st.status("Searching for Contact"):
+        st.write("Searching on google")
+        time.sleep(2)
+        st.write("Found URL.")
+        time.sleep(1)
+        st.write("Retrieving Address")
+        time.sleep(1)
+
+st.button("Rerun")
     st.code(contact)
 
     st.subheader("✍️ Generated Complaint Letter")
