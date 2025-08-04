@@ -77,7 +77,7 @@ def find_contact_email(location, issue_type):
 
 # Streamlit App Starts Here
 st.set_page_config(page_title="CivicBot", layout="centered")
-st.title("\U0001F30D CivicBot: Raise Your Voice for Local Issues")
+st.title("🌍 CivicBot: Raise Your Voice for Local Issues")
 
 options_list = [
     "Choose", "Sanitation", "Drainage", "Water Supply", "Electricity", "Road Damage",
@@ -102,7 +102,7 @@ if not st.session_state.sender_done:
 
 # Step 2: Location
 if st.session_state.sender_done and not st.session_state.location_done:
-    location = st.text_input("\U0001F4CD Enter your area/locality:", key="location_input").strip()
+    location = st.text_input("📍 Enter your area/locality:", key="location_input").strip()
     if location:
         st.session_state.location = location
         st.session_state.location_done = True
@@ -110,7 +110,7 @@ if st.session_state.sender_done and not st.session_state.location_done:
 
 # Step 3: Issue Type
 if st.session_state.location_done and not st.session_state.issue_type_done:
-    issue_type = st.selectbox("\U0001F527 Select the issue type:", options_list, index=0, key="issue_type_input")
+    issue_type = st.selectbox("💧 Select the issue type:", options_list, index=0, key="issue_type_input")
     if issue_type != "Choose":
         if issue_type == "Other":
             custom_issue = st.text_input("Please describe the issue:", key="custom_issue_input")
@@ -122,7 +122,7 @@ if st.session_state.location_done and not st.session_state.issue_type_done:
 
 # Step 4: Description
 if st.session_state.issue_type_done and not st.session_state.issue_description_done:
-    issue_description = st.text_input("\U0001F4E3 Briefly describe the issue:", key="issue_desc_input").strip()
+    issue_description = st.text_input("📣 Briefly describe the issue:", key="issue_desc_input").strip()
     if issue_description:
         st.session_state.issue_description = issue_description
         st.session_state.issue_description_done = True
@@ -144,7 +144,7 @@ if st.session_state.issue_description_done and not st.session_state.followup_don
 # After all inputs
 if st.session_state.followup_done:
     contact = find_contact_email(st.session_state.location, st.session_state.issue_type)
-    st.subheader("\U0001F4E9 Suggested Contact")
+    st.subheader("📩 Suggested Contact")
     st.code(contact)
 
     st.subheader("✍️ Generated Complaint Letter")
@@ -164,5 +164,5 @@ if st.session_state.followup_done:
             st.session_state.issue_type,
             st.session_state.issue_description
         )
-        st.markdown("### \U0001F9D1‍\U0001F4CB Further Steps You Can Take")
+        st.markdown("### 🧑‍📋 Further Steps You Can Take")
         st.markdown(steps)
