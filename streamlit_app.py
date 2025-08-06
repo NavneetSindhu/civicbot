@@ -126,8 +126,8 @@ if st.session_state.complaint_generated:
 
 if st.button("Submit Complaint and Trigger Automation"):
     final_data = {
-        "to": session_state.contact,
-        "letter": session_state.complaint
+        "to": st.session_state.contact,
+        "letter": st.session_state.complaint
     }
     send_to_n8n(final_data)
 
