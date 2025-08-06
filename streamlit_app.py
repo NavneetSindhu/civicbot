@@ -44,7 +44,7 @@ def find_contact_email(location, issue_type):
     prompt = f"""
     Find the most likely official contact email for {issue_type} in {location}, India.
     Prefer .gov.in domains. Format output as:
-    Email: [email address], Contact Name: [name/department]
+    {email_id}
     """
     return model.generate_content(prompt).text.strip()
 
@@ -117,7 +117,7 @@ if st.session_state.complaint_generated:
     st.code(st.session_state.contact)
 
     st.subheader("\u270D️ Complaint Letter")
-    st.text_area("Letter", value=st.session_state.complaint, height=300)
+    st.code("Letter", value=st.session_state.complaint, height=300)
 
     if st.button("Start Over"):
         for key in list(st.session_state.keys()):
@@ -127,7 +127,7 @@ if st.session_state.complaint_generated:
 if st.button("Submit Complaint and Trigger Automation"):
     final_data = {
         "to": "demo@gmail.com",
-        "letter": st.session_state.generated_letter
+        "letter": st.session_state.complaint
     }
     send_to_n8n(final_data)
 
