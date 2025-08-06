@@ -44,7 +44,7 @@ def find_contact_email(location, issue_type):
     prompt = f"""
     Find the most likely official contact email for {issue_type} in {location}, India.
     Prefer .gov.in domains. Format output as:
-    {email_id}
+    email id only to be sent to http request further
     """
     return model.generate_content(prompt).text.strip()
 
