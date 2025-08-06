@@ -11,7 +11,7 @@ def send_to_n8n(data):
             st.success("Data sent to n8n successfully!")
         else:
             st.warning(f"n8n returned status code: {response.status_code}")
-    except Exception as e:
+    except Exception as e: 
         st.error(f"Error sending data to n8n: {e}")
 
 genai.configure(api_key="AIzaSyDsEjUH14QGHeKmxmhX2ABAa7NppS44PK4")
@@ -126,7 +126,7 @@ if st.session_state.complaint_generated:
 
 if st.button("Submit Complaint and Trigger Automation"):
     final_data = {
-        "to": st.session_state.email,
+        "to": "demo@gmail.com",
         "letter": st.session_state.generated_letter
     }
     send_to_n8n(final_data)
