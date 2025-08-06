@@ -1,32 +1,7 @@
-# civicbot_streamlit.py
-import os
 import google.generativeai as genai
-import threading
-import time
 import streamlit as st
 
-# Loader spinner in console (used in CLI, not Streamlit UI)
-def loader(message="⏳ Working"):
-    chars = ["", ".", "..", "..."]
-    i = 0
-    while not stop_loader:
-        print(f"\r{message}{chars[i % 4]}", end="")
-        i += 1
-        time.sleep(0.4)
-    print("\r", end="")
-
-# Wrapper for Gemini API call with console loader
-def generate_with_loader(fn, *args, message="⏳ Working", **kwargs):
-    global stop_loader
-    stop_loader = False
-    t = threading.Thread(target=loader, args=(message,))
-    t.start()
-    result = fn(*args, **kwargs)
-    stop_loader = True
-    t.join()
-    return result
-
-# Configure Gemini API Key
+# Gemini API setup
 genai.configure(api_key="AIzaSyDsEjUH14QGHeKmxmhX2ABAa7NppS44PK4")
 
 def follow_up(location, issue_type, issue_description):
@@ -36,19 +11,7 @@ def follow_up(location, issue_type, issue_description):
     Based on user input ({location}, {issue_type}, {issue_description}), ask 3 short follow-up questions to clarify details.
     Only return the questions.
     """
-    response = generate_with_loader(lambda: model.generate_content(prompt))
-    return response.text.strip()
-
-def further_steps(location, issue_type, issue_description):
-    model = genai.GenerativeModel("gemini-2.5-pro")
-    prompt = f"""
-    Suggest actionable steps a citizen can take for this civic issue:
-    Location: {location}
-    Issue: {issue_type}
-    Description: {issue_description}
-    """
-    response = generate_with_loader(lambda: model.generate_content(prompt))
-    return response.text.strip()
+    return model.generate_content(prompt).text.strip()
 
 def generate_complaint(location, issue_type, issue_description, sender, followup, contact=""):
     model = genai.GenerativeModel("gemini-2.5-pro")
@@ -62,8 +25,7 @@ def generate_complaint(location, issue_type, issue_description, sender, followup
     Contact: {contact}
     Use polite, professional, and assertive language.
     """
-    response = generate_with_loader(lambda: model.generate_content(prompt))
-    return response.text.strip()
+    return model.generate_content(prompt).text.strip()
 
 def find_contact_email(location, issue_type):
     model = genai.GenerativeModel("gemini-2.5-pro")
@@ -72,115 +34,43 @@ def find_contact_email(location, issue_type):
     Prefer .gov.in domains. Format output as:
     Email: [email address], Contact Name: [name/department]
     """
-    response = generate_with_loader(lambda: model.generate_content(prompt))
-    return response.text.strip()
+    return model.generate_content(prompt).text.strip()
 
-# Streamlit App Starts Here
+# Streamlit UI
 st.set_page_config(page_title="CivicBot", layout="centered")
-st.title("🌍 CivicBot: Raise Your Voice for Local Issues")
+st.title("🌍 CivicBot: File a Local Civic Issue")
 
-options_list = [
-    "Choose", "Sanitation", "Drainage", "Water Supply", "Electricity", "Road Damage",
-    "Garbage Collection", "Street Lighting", "Noise Pollution", "Air Pollution",
-    "Illegal Parking", "Animal Nuisance", "Sewage Overflow", "Construction Debris",
-    "Tree Cutting", "Public Toilet Maintenance", "Potholes", "Blocked Footpaths",
-    "Open Manholes", "Other"
-]
+with st.form("civic_form"):
+    sender = st.text_input("Your Name (leave blank for anonymous)")
+    location = st.text_input("📍 Area / Locality")
+    issue_type = st.selectbox("💧 Select Issue Type", [
+        "Sanitation", "Drainage", "Water Supply", "Electricity", "Road Damage",
+        "Garbage Collection", "Street Lighting", "Noise Pollution", "Air Pollution",
+        "Illegal Parking", "Animal Nuisance", "Sewage Overflow", "Construction Debris",
+        "Tree Cutting", "Public Toilet Maintenance", "Potholes", "Blocked Footpaths",
+        "Open Manholes", "Other"
+    ])
+    if issue_type == "Other":
+        issue_type = st.text_input("Please specify the issue")
 
-# Initialize session state keys if not present
-for key in ["sender_done", "location_done", "issue_type_done", "issue_description_done", "followup_done"]:
-    if key not in st.session_state:
-        st.session_state[key] = False
+    issue_description = st.text_area("🗣️ Describe the Issue")
+    submitted = st.form_submit_button("Submit")
 
-# Step 1: Name
-if not st.session_state.sender_done:
-    sender = st.text_input("Enter your name (or leave blank for anonymous):", key="sender_input").strip()
-    if sender or sender == "":
-        st.session_state.sender = sender
-        st.session_state.sender_done = True
-        st.rerun()
-else:
-    st.text(f"Name: {st.session_state.sender}")
+if submitted:
+    with st.spinner("Getting follow-up questions..."):
+        questions = follow_up(location, issue_type, issue_description)
+    st.markdown("---")
+    st.subheader("🖊️ Follow-Up Questions")
+    followup = st.text_area("Please answer:", value=questions, height=150)
 
-# Step 2: Location
-if st.session_state.sender_done:
-    if not st.session_state.location_done:
-        location = st.text_input("📍 Enter your area/locality:", key="location_input").strip()
-        if location:
-            st.session_state.location = location
-            st.session_state.location_done = True
-            st.rerun()
-    else:
-        st.text(f"Location: {st.session_state.location}")
+    if st.button("Generate Complaint Letter"):
+        with st.spinner("Looking up contact and drafting letter..."):
+            contact = find_contact_email(location, issue_type)
+            complaint = generate_complaint(location, issue_type, issue_description, sender, followup, contact)
 
-# Step 3: Issue Type
-if st.session_state.location_done:
-    if not st.session_state.issue_type_done:
-        issue_type = st.selectbox("💧 Select the issue type:", options_list, index=0, key="issue_type_input")
-        if issue_type != "Choose":
-            if issue_type == "Other":
-                custom_issue = st.text_input("Please describe the issue:", key="custom_issue_input")
-                if custom_issue:
-                    issue_type = custom_issue
-            st.session_state.issue_type = issue_type
-            st.session_state.issue_type_done = True
-            st.rerun()
-    else:
-        st.text(f"Issue Type: {st.session_state.issue_type}")
+        st.markdown("---")
+        st.subheader("📩 Contact Details")
+        st.code(contact)
 
-# Step 4: Description
-if st.session_state.issue_type_done:
-    if not st.session_state.issue_description_done:
-        issue_description = st.text_input("📣 Briefly describe the issue:", key="issue_desc_input").strip()
-        if issue_description:
-            st.session_state.issue_description = issue_description
-            st.session_state.issue_description_done = True
-            st.rerun()
-    else:
-        st.text(f"Issue Description: {st.session_state.issue_description}")
-
-# Step 5: Follow-Up Questions
-if st.session_state.issue_description_done:
-    if not st.session_state.followup_done:
-        with st.spinner("Generating follow-up questions..."):
-            questions = follow_up(
-                st.session_state.location,
-                st.session_state.issue_type,
-                st.session_state.issue_description
-            )
-        followup = st.text_area("Please answer the following:", value=questions, key="followup_input")
-        if followup:
-            st.session_state.followup = followup
-            st.session_state.followup_done = True
-            st.rerun()
-    else:
-        st.text(f"Follow-Up Answers:\n{st.session_state.followup}")
-
-# After all inputs collected, show contact and complaint letter
-if st.session_state.followup_done:
-    with st.spinner("Searching for relevant contact..."):
-        contact = find_contact_email(st.session_state.location, st.session_state.issue_type)
-    st.subheader("📩 Contact Details")
-    st.code(contact)
-
-    st.subheader("✍️ Generated Complaint Letter")
-    with st.spinner("Generating complaint letter..."):
-        complaint = generate_complaint(
-            st.session_state.location,
-            st.session_state.issue_type,
-            st.session_state.issue_description,
-            st.session_state.sender,
-            st.session_state.followup,
-            contact
-        )
-    st.text_area("Complaint Letter", complaint, height=300)
-
-    if st.button("Show Suggested Further Steps"):
-        with st.spinner("Generating further steps..."):
-            steps = further_steps(
-                st.session_state.location,
-                st.session_state.issue_type,
-                st.session_state.issue_description
-            )
-        st.markdown("### 🧑‍📋 Further Steps You Can Take")
-        st.markdown(steps)
+        st.subheader("✍️ Complaint Letter")
+        st.text_area("Letter", value=complaint, height=300)
