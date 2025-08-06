@@ -1,7 +1,19 @@
 import google.generativeai as genai
 import streamlit as st
 
-# Gemini API setup
+import requests
+
+def send_to_n8n(data):
+    n8n_webhook_url = "https://YOUR-N8N-SUBDOMAIN.n8n.cloud/webhook/XYZ123"  # Replace with your real URL
+    try:
+        response = requests.post(n8n_webhook_url, json=data)
+        if response.status_code == 200:
+            st.success("Data sent to n8n successfully!")
+        else:
+            st.warning(f"n8n returned status code: {response.status_code}")
+    except Exception as e:
+        st.error(f"Error sending data to n8n: {e}")
+
 genai.configure(api_key="AIzaSyDsEjUH14QGHeKmxmhX2ABAa7NppS44PK4")
 
 def follow_up(location, issue_type, issue_description):
@@ -111,3 +123,14 @@ if st.session_state.complaint_generated:
         for key in list(st.session_state.keys()):
             del st.session_state[key]
         st.rerun()
+
+if st.button("Submit Complaint and Trigger Automation"):
+    final_data = {
+        "name": st.session_state.name,
+        "email": st.session_state.email,
+        "issue": st.session_state.issue,
+        "answers": st.session_state.answers,
+        "letter": st.session_state.generated_letter
+    }
+    send_to_n8n(final_data)
+
