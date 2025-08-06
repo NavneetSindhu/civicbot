@@ -4,7 +4,7 @@ import streamlit as st
 import requests
 
 def send_to_n8n(data):
-    n8n_webhook_url = "https://aicivicbot.app.n8n.cloud/webhook/84d05857-4b9c-4a0a-8267-68f9701ca678"  # Replace with your real URL
+    n8n_webhook_url = "https://aicivicbot.app.n8n.cloud/webhook/6a5c1362-0518-4693-9e76-043a62778da7"  # Replace with your real URL
     try:
         response = requests.post(n8n_webhook_url, json=data)
         if response.status_code == 200:
