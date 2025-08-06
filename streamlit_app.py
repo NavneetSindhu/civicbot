@@ -38,39 +38,76 @@ def find_contact_email(location, issue_type):
 
 # Streamlit UI
 st.set_page_config(page_title="CivicBot", layout="centered")
-st.title("🌍 CivicBot: File a Local Civic Issue")
+st.title("\U0001F30D CivicBot: File a Local Civic Issue")
 
-with st.form("civic_form"):
-    sender = st.text_input("Your Name (leave blank for anonymous)")
-    location = st.text_input("📍 Area / Locality")
-    issue_type = st.selectbox("💧 Select Issue Type", [
-        "Sanitation", "Drainage", "Water Supply", "Electricity", "Road Damage",
-        "Garbage Collection", "Street Lighting", "Noise Pollution", "Air Pollution",
-        "Illegal Parking", "Animal Nuisance", "Sewage Overflow", "Construction Debris",
-        "Tree Cutting", "Public Toilet Maintenance", "Potholes", "Blocked Footpaths",
-        "Open Manholes", "Other"
-    ])
-    if issue_type == "Other":
-        issue_type = st.text_input("Please specify the issue")
+if "followup_stage" not in st.session_state:
+    st.session_state.followup_stage = False
 
-    issue_description = st.text_area("🗣️ Describe the Issue")
-    submitted = st.form_submit_button("Submit")
+if "questions" not in st.session_state:
+    st.session_state.questions = ""
 
-if submitted:
-    with st.spinner("Getting follow-up questions..."):
-        questions = follow_up(location, issue_type, issue_description)
-    st.markdown("---")
-    st.subheader("🖊️ Follow-Up Questions")
-    followup = st.text_area("Please answer:", value=questions, height=150)
+if "complaint_generated" not in st.session_state:
+    st.session_state.complaint_generated = False
+
+if not st.session_state.followup_stage:
+    with st.form("civic_form"):
+        sender = st.text_input("Your Name (leave blank for anonymous)")
+        location = st.text_input("\U0001F4CD Area / Locality")
+        issue_type = st.selectbox("\U0001F4A7 Select Issue Type", [
+            "Sanitation", "Drainage", "Water Supply", "Electricity", "Road Damage",
+            "Garbage Collection", "Street Lighting", "Noise Pollution", "Air Pollution",
+            "Illegal Parking", "Animal Nuisance", "Sewage Overflow", "Construction Debris",
+            "Tree Cutting", "Public Toilet Maintenance", "Potholes", "Blocked Footpaths",
+            "Open Manholes", "Other"
+        ])
+        if issue_type == "Other":
+            issue_type = st.text_input("Please specify the issue")
+
+        issue_description = st.text_area("\U0001F5E3️ Describe the Issue")
+        submitted = st.form_submit_button("Submit")
+
+    if submitted:
+        with st.spinner("Getting follow-up questions..."):
+            questions = follow_up(location, issue_type, issue_description)
+            st.session_state.questions = questions
+            st.session_state.sender = sender
+            st.session_state.location = location
+            st.session_state.issue_type = issue_type
+            st.session_state.issue_description = issue_description
+            st.session_state.followup_stage = True
+        st.rerun()
+
+else:
+    st.subheader("\U0001F58A️ Follow-Up Questions")
+    st.markdown("_Please provide answers to the following questions:_")
+    st.code(st.session_state.questions)
+    followup = st.text_area("Your Answers")
 
     if st.button("Generate Complaint Letter"):
         with st.spinner("Looking up contact and drafting letter..."):
-            contact = find_contact_email(location, issue_type)
-            complaint = generate_complaint(location, issue_type, issue_description, sender, followup, contact)
+            contact = find_contact_email(st.session_state.location, st.session_state.issue_type)
+            complaint = generate_complaint(
+                st.session_state.location,
+                st.session_state.issue_type,
+                st.session_state.issue_description,
+                st.session_state.sender,
+                followup,
+                contact
+            )
+            st.session_state.contact = contact
+            st.session_state.complaint = complaint
+            st.session_state.complaint_generated = True
+        st.rerun()
 
-        st.markdown("---")
-        st.subheader("📩 Contact Details")
-        st.code(contact)
+if st.session_state.complaint_generated:
+    st.markdown("---")
+    st.subheader("\U0001F4E9 Contact Details")
+    st.code(st.session_state.contact)
 
-        st.subheader("✍️ Complaint Letter")
-        st.text_area("Letter", value=complaint, height=300)
+    st.subheader("\u270D️ Complaint Letter")
+    st.text_area("Letter", value=st.session_state.complaint, height=300)
+
+    if st.button("Start Over"):
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
+        st.rerun()
