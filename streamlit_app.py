@@ -117,7 +117,7 @@ if st.session_state.complaint_generated:
     st.code(st.session_state.contact)
 
     st.subheader("\u270D️ Complaint Letter")
-    st.code("Letter", value=st.session_state.complaint, height=300)
+    st.code(st.session_state.complaint)
 
     if st.button("Start Over"):
         for key in list(st.session_state.keys()):
