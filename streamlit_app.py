@@ -14,7 +14,7 @@ def send_to_n8n(data):
     except Exception as e: 
         st.error(f"Error sending data to n8n: {e}")
 
-genai.configure(api_key="AIzaSyDsEjUH14QGHeKmxmhX2ABAa7NppS44PK4")
+genai.configure(api_key="AIzaSyBXYSEP-6xIdokgPDkt8_GBSXMnBeQpaWI")
 
 def follow_up(location, issue_type, issue_description):
     model = genai.GenerativeModel("gemini-2.5-pro")
